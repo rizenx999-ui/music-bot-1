@@ -1,14 +1,14 @@
 const express = require("express");
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require("@discordjs/voice");
-const ytdl = require("ytdl-core");
+const play = require("play-dl");
 
-// ---------------- EXPRESS (Render keep-alive) ----------------
+// ---------- EXPRESS (Render keep alive) ----------
 const app = express();
 app.get("/", (req, res) => res.send("Bot is alive"));
 app.listen(3000, () => console.log("Web server running"));
 
-// ---------------- DISCORD BOT ----------------
+// ---------- DISCORD CLIENT ----------
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -19,7 +19,7 @@ const client = new Client({
 const player = createAudioPlayer();
 let connection;
 
-// ---------------- SLASH COMMANDS ----------------
+// ---------- SLASH COMMANDS ----------
 const commands = [
   new SlashCommandBuilder()
     .setName("play")
@@ -33,7 +33,7 @@ const commands = [
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-// ---------------- READY EVENT ----------------
+// ---------- READY ----------
 client.once("ready", async () => {
   console.log("Bot is ONLINE!");
 
@@ -48,11 +48,11 @@ client.once("ready", async () => {
   }
 });
 
-// ---------------- COMMAND HANDLER ----------------
-client.on("interactionCreate", async interaction => {
+// ---------- COMMAND HANDLER ----------
+client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  // PLAY
+  // PLAY COMMAND
   if (interaction.commandName === "play") {
     const url = interaction.options.getString("url");
     const channel = interaction.member.voice.channel;
@@ -65,8 +65,10 @@ client.on("interactionCreate", async interaction => {
       adapterCreator: interaction.guild.voiceAdapterCreator
     });
 
-    const stream = ytdl(url, { filter: "audioonly" });
-    const resource = createAudioResource(stream);
+    const stream = await play.stream(url);
+    const resource = createAudioResource(stream.stream, {
+      inputType: stream.type
+    });
 
     player.play(resource);
     connection.subscribe(player);
@@ -87,4 +89,5 @@ client.on("interactionCreate", async interaction => {
   }
 });
 
+// ---------- LOGIN ----------
 client.login(process.env.TOKEN);
